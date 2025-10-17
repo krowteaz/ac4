@@ -1,17 +1,12 @@
-# 📺 AC4 — Global IPTV App (v4)
+# 📺 AC4 — Global IPTV App (v4.1)
 
-**Default country:** Philippines (🇵🇭)  
-**Playback:** HLS via hls.js  
-**Source:** Public/free playlists from https://iptv-org.github.io/iptv/
-
-## ✨ What’s New in v4
-- ⭐ Favorites with **persistent** storage (`favorites.json`)
-- ⏮ ⏭ **Back/Next** channel navigation
-- 🏷️ Category filter from `group-title`
-- 🔎 Search by name/group
-- 🇵🇭 PH default with **Extend PH** option (adds Filipino language list)
-- 🌍 Country picker + custom ISO input
-- 🕶️ Dark theme
+## 🎯 Improvements
+- ✅ Fixed ⏮ Back / ▶ Next buttons (instant navigation)
+- ✅ Larger, responsive full-width video player
+- ⭐ Persistent favorites (saved to favorites.json)
+- 🔎 Search and 🏷️ Category filter
+- 🌍 Country picker + ISO input
+- 🇵🇭 Default to Philippines with Extend PH option
 
 ## ▶️ Run
 ```bash
@@ -20,4 +15,4 @@ streamlit run app.py
 ```
 
 ## ⚖️ Legal
-Only public/free streams from iptv-org are referenced. Some streams may be geo-restricted or intermittently available. Please comply with local laws and channel terms.
+Streams are from https://iptv-org.github.io/iptv (public/free). Some may be geo-restricted.
