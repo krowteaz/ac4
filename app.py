@@ -1,3 +1,8 @@
+# =========================================================
+# AC4 IPTV v4.4.3 — Global IPTV Player
+# Author: Jef
+# Credits: iptv-org (Public M3U Source)
+# =========================================================
 
 import streamlit as st
 import requests
@@ -8,7 +13,7 @@ from random import randint
 
 st.set_page_config(page_title="AC4 - Global IPTV", layout="wide")
 
-LOGO_PATH = "assets/ac4_logo.png"  # keep same path; optional asset
+LOGO_PATH = "assets/ac4_logo.png"  # path for logo asset
 
 # -------------------------- THEME --------------------------
 DARK_CSS = """
@@ -103,7 +108,13 @@ def parse_m3u(raw: str):
             name = name_match.group(1).strip() if name_match else "Unknown"
         elif s.startswith("http"):
             if ".m3u8" in s:
-                channels.append({"name": name or "Unknown", "url": s, "logo": logo, "group": group, "tvg_id": tvg_id})
+                channels.append({
+                    "name": name or "Unknown",
+                    "url": s,
+                    "logo": logo,
+                    "group": group,
+                    "tvg_id": tvg_id
+                })
             name, logo, group, tvg_id = None, "", "", ""
     return channels
 
@@ -142,10 +153,7 @@ def render_player(hls_url: str, overlay_text: str, cache_bust: int):
             align-items: center;
             height: 80vh;
           }}
-          .wrap {{
-            position: relative;
-            width: min(90vw, 1280px);
-          }}
+          .wrap {{ position: relative; width: min(90vw, 1280px); }}
           video {{
             width: 100%;
             height: 70vh;
@@ -251,7 +259,7 @@ with st.sidebar:
     except Exception:
         pass
     st.header("🌏 Country / Source")
-    choice = st.selectbox("Select a country or global list", list(CURATED.keys()), index=0)  # PH default
+    choice = st.selectbox("Select a country or global list", list(CURATED.keys()), index=0)
     url = CURATED[choice]
 
     custom_iso = st.text_input("Or enter ISO country code (e.g., ph, us, jp, gb)")
@@ -261,8 +269,6 @@ with st.sidebar:
     extend_ph = st.checkbox("Extend PH list", value=("Philippines" in choice))
     query = st.text_input("🔎 Search channels", "", help="Filter by name or group")
     favorites_only = st.checkbox("⭐ Favorites only", value=False)
-
-    # Mini Favorites header
     st.markdown("### ⭐ Favorites")
 
 # -------------------------- LOAD CHANNELS --------------------------
@@ -272,10 +278,9 @@ if not channels:
     st.error("No channels found or source unreachable.")
     st.stop()
 
-# Map url->name for favorites
 url_to_name = {c["url"]: (c["name"] or "Unknown") for c in channels}
 
-# Re-render favorites list with names (max 10)
+# Favorites sidebar
 with st.sidebar:
     favs_sorted = sorted(list(st.session_state.favorites))
     if not favs_sorted:
@@ -309,7 +314,7 @@ if not filtered:
     st.warning("No channels match your filters.")
     st.stop()
 
-# Jump if favorite clicked
+# Favorite click jump
 if "target_url" in st.session_state:
     try:
         st.session_state.idx = next(i for i, c in enumerate(filtered) if c["url"] == st.session_state.target_url)
@@ -327,22 +332,23 @@ st.session_state.idx = max(0, min(st.session_state.idx, len(filtered) - 1))
 # Channel counter
 st.caption(f"Channel {st.session_state.idx + 1} of {len(filtered)}")
 
-selected_name = st.selectbox("Select a channel", names, index=st.session_state.idx, key="channel_select")
+# Main channel selector
+selected_name = st.selectbox("Select a channel", names, index=st.session_state.idx, key="selected_name")
 st.session_state.idx = names.index(selected_name)
 
-# Controls
+# -------------------------- CONTROLS (FIXED) --------------------------
 col1, col2, col3, col4 = st.columns([0.12, 0.12, 0.28, 0.48])
 
 with col1:
     if st.button("⏮ Back", key="back_btn"):
         st.session_state.idx = (st.session_state.idx - 1) % len(filtered)
-        st.session_state.channel_select = filtered[st.session_state.idx]["name"]
+        st.session_state.selected_name = filtered[st.session_state.idx]["name"]
         st.rerun()
 
 with col2:
     if st.button("▶ Next", key="next_btn"):
         st.session_state.idx = (st.session_state.idx + 1) % len(filtered)
-        st.session_state.channel_select = filtered[st.session_state.idx]["name"]
+        st.session_state.selected_name = filtered[st.session_state.idx]["name"]
         st.rerun()
 
 with col3:
@@ -356,6 +362,7 @@ with col3:
         save_favorites(st.session_state.favorites)
         st.toast("Favorites updated", icon="⭐")
 
+# -------------------------- PLAYER --------------------------
 chan = filtered[st.session_state.idx]
 logo_html = f"<img class='logo' src='{chan['logo']}' />" if chan.get("logo") else ""
 group_html = f"<span class='badge'>{chan['group']}</span>" if chan.get("group") else ""
