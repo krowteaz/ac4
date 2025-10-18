@@ -1,7 +1,6 @@
 # =========================================================
-# AC4 IPTV v4.4.3 — Global IPTV Player
-# Author: Jef
-# Credits: iptv-org (Public M3U Source)
+# AC4 IPTV v4.4.3 — Global IPTV Player (Back/Next fixed)
+# Author: Jef • Sources: iptv-org
 # =========================================================
 
 import streamlit as st
@@ -13,7 +12,8 @@ from random import randint
 
 st.set_page_config(page_title="AC4 - Global IPTV", layout="wide")
 
-LOGO_PATH = "assets/ac4_logo.png"  # path for logo asset
+LOGO_PATH = "assets/ac4_logo.png"  # keep same path
+HDRS = {"User-Agent": "Mozilla/5.0 (AC4-Global-IPTV)"}
 
 # -------------------------- THEME --------------------------
 DARK_CSS = """
@@ -48,8 +48,8 @@ st.markdown(
 
 # -------------------------- DATA SOURCES --------------------------
 BASE_COUNTRY_URL = "https://iptv-org.github.io/iptv/countries/{code}.m3u"
-MASTER_ALL_URL = "https://iptv-org.github.io/iptv/index.m3u"
-PH_URL = BASE_COUNTRY_URL.format(code="ph")
+MASTER_ALL_URL   = "https://iptv-org.github.io/iptv/index.m3u"
+PH_URL           = BASE_COUNTRY_URL.format(code="ph")
 FIL_LANGUAGE_URL = "https://iptv-org.github.io/iptv/languages/fil.m3u"
 
 CURATED = {
@@ -83,8 +83,6 @@ if "favorites" not in st.session_state:
     st.session_state.favorites = load_favorites()
 
 # -------------------------- HELPERS --------------------------
-HDRS = {"User-Agent": "Mozilla/5.0 (AC4-Global-IPTV)"}
-
 @st.cache_data(show_spinner=True)
 def fetch_text(url: str, timeout: int = 20) -> str:
     r = requests.get(url, headers=HDRS, timeout=timeout)
@@ -108,13 +106,7 @@ def parse_m3u(raw: str):
             name = name_match.group(1).strip() if name_match else "Unknown"
         elif s.startswith("http"):
             if ".m3u8" in s:
-                channels.append({
-                    "name": name or "Unknown",
-                    "url": s,
-                    "logo": logo,
-                    "group": group,
-                    "tvg_id": tvg_id
-                })
+                channels.append({"name": name or "Unknown", "url": s, "logo": logo, "group": group, "tvg_id": tvg_id})
             name, logo, group, tvg_id = None, "", "", ""
     return channels
 
@@ -278,9 +270,10 @@ if not channels:
     st.error("No channels found or source unreachable.")
     st.stop()
 
+# Map url->name for favorites UI
 url_to_name = {c["url"]: (c["name"] or "Unknown") for c in channels}
 
-# Favorites sidebar
+# Favorites quick launch
 with st.sidebar:
     favs_sorted = sorted(list(st.session_state.favorites))
     if not favs_sorted:
@@ -295,6 +288,7 @@ with st.sidebar:
         if len(favs_sorted) > max_show:
             st.caption(f"+ {len(favs_sorted) - max_show} more…")
 
+# Filters
 groups = sorted({c["group"] for c in channels if c.get("group")})
 group_choice = st.selectbox("Filter by category", ["All"] + groups, index=0)
 
@@ -314,7 +308,7 @@ if not filtered:
     st.warning("No channels match your filters.")
     st.stop()
 
-# Favorite click jump
+# Jump if favorite was clicked
 if "target_url" in st.session_state:
     try:
         st.session_state.idx = next(i for i, c in enumerate(filtered) if c["url"] == st.session_state.target_url)
@@ -323,32 +317,32 @@ if "target_url" in st.session_state:
     finally:
         del st.session_state["target_url"]
 
+# Index init and clamp
 if "idx" not in st.session_state:
     st.session_state.idx = 0
-
-names = [c["name"] for c in filtered]
 st.session_state.idx = max(0, min(st.session_state.idx, len(filtered) - 1))
+
+# Names for selectbox
+names = [c["name"] for c in filtered]
 
 # Channel counter
 st.caption(f"Channel {st.session_state.idx + 1} of {len(filtered)}")
 
-# Main channel selector
-selected_name = st.selectbox("Select a channel", names, index=st.session_state.idx, key="selected_name")
+# Main selector (NO widget key assignment from buttons)
+selected_name = st.selectbox("Select a channel", names, index=st.session_state.idx)
 st.session_state.idx = names.index(selected_name)
 
-# -------------------------- CONTROLS (FIXED) --------------------------
+# -------------------------- CONTROLS (NO direct widget state writes) --------------------------
 col1, col2, col3, col4 = st.columns([0.12, 0.12, 0.28, 0.48])
 
 with col1:
     if st.button("⏮ Back", key="back_btn"):
         st.session_state.idx = (st.session_state.idx - 1) % len(filtered)
-        st.session_state.selected_name = filtered[st.session_state.idx]["name"]
         st.rerun()
 
 with col2:
     if st.button("▶ Next", key="next_btn"):
         st.session_state.idx = (st.session_state.idx + 1) % len(filtered)
-        st.session_state.selected_name = filtered[st.session_state.idx]["name"]
         st.rerun()
 
 with col3:
@@ -364,7 +358,7 @@ with col3:
 
 # -------------------------- PLAYER --------------------------
 chan = filtered[st.session_state.idx]
-logo_html = f"<img class='logo' src='{chan['logo']}' />" if chan.get("logo") else ""
+logo_html  = f"<img class='logo' src='{chan['logo']}' />" if chan.get("logo") else ""
 group_html = f"<span class='badge'>{chan['group']}</span>" if chan.get("group") else ""
 st.markdown(f"### {logo_html}{chan['name']} {group_html}", unsafe_allow_html=True)
 if chan.get("tvg_id"):
