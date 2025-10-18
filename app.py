@@ -332,18 +332,23 @@ st.session_state.idx = names.index(selected_name)
 
 # Controls
 col1, col2, col3, col4 = st.columns([0.12, 0.12, 0.28, 0.48])
+
 with col1:
-    if st.button("⏮ Back"):
+    if st.button("⏮ Back", key="back_btn"):
         st.session_state.idx = (st.session_state.idx - 1) % len(filtered)
+        st.session_state.channel_select = filtered[st.session_state.idx]["name"]
         st.rerun()
+
 with col2:
-    if st.button("▶ Next"):
+    if st.button("▶ Next", key="next_btn"):
         st.session_state.idx = (st.session_state.idx + 1) % len(filtered)
+        st.session_state.channel_select = filtered[st.session_state.idx]["name"]
         st.rerun()
+
 with col3:
     current = filtered[st.session_state.idx]
     is_fav = current["url"] in st.session_state.favorites
-    if st.button("⭐ Remove Favorite" if is_fav else "⭐ Add to Favorites"):
+    if st.button("⭐ Remove Favorite" if is_fav else "⭐ Add to Favorites", key="fav_toggle"):
         if is_fav:
             st.session_state.favorites.discard(current["url"])
         else:
